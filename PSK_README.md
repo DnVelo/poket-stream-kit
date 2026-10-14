@@ -33,5 +33,5 @@
 - 🟡 プロセス構成とスレッド → `PSK_ENGINE §4`
 - 🟡 ヘッドホンに返す音 → `PSK_VISION §3.3`
 - 🟡 VST3 ホストと画面の書き方 → `PSK_ENGINE §1.2`
-- 🟡 使うプラグインと形式 → `PSK_ENGINE §5`
+- 🟡 rovee を内製するかホストするか・汎用の段を内蔵するか → `PSK_ENGINE §5.1`
 - 🟡 遅延の目標値 → `PSK_VISION §4`
