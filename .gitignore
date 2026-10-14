@@ -4,3 +4,5 @@ out/
 .vscode/
 *.user
 .claude/state/
+zig-out/
+.zig-cache/

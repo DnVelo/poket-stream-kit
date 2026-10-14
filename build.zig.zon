@@ -1,0 +1,7 @@
+.{
+    .name = .poket_stream_kit,
+    .fingerprint = 0x282358c256cbe736,
+    .version = "0.0.0",
+    .minimum_zig_version = "0.15.1",
+    .paths = .{ "build.zig", "build.zig.zon", "src" },
+}

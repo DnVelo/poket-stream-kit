@@ -22,6 +22,7 @@
 | 🟡 VST3 ホスト | Steinberg の C 版ヘッダ（`vst3_c_api`）を Zig から使う／VST3 SDK（C++）の薄い層（P2 で決める） | 🟢 **最小限のホストにする**（2026-10-14 承認）: 内製しないプラグイン（当面は RX 8 の De-noise。T-De-Esser は聞き比べ次第）だけを読めればよい。必要なのは「DLL を読む → 処理を回す → エディタを Win32 の子ウィンドウに貼る → 状態を保存・復元する」まで。🔴 C 版ヘッダで実用のホストが組めるか、VST3 SDK のライセンスは未確認 |
 | 🟡 画面 | Zig から Win32 を直接呼ぶ | プラグインのエディタも Win32 のウィンドウに載せる |
 
+- 🟢 **COM は ASIO 用の STA を miniaudio より先に初期化する**（逆だと ASIO が開けない・2026-10-14 に偽ドライバで発覚・詳細は `src/audio/CLAUDE.md`）。
 - 🟢 Android へ移植するときは、ASIO の部分を外して miniaudio だけで動かす。⚠ VST3 も Android には無いので、プラグインの扱いは移植時に別途決める。
 - ⚠ Gear-vk では ASIO（RtAudio 経由）と miniaudio を**同時には開かない**設計だった[^gear-audio]。本ツールは **ASIO と miniaudio を同時に開くのが本題**なので、そこは新しく作る部分になる。
 - ⚠ ASIO SDK のライセンス: Gear-vk の資料では「再配布不可」だが、**2.3.4（2025-10-15）から Steinberg 独自ライセンスと GPLv3 の選択制**になった[^asio-license]。
