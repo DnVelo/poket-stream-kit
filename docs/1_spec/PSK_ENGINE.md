@@ -92,7 +92,11 @@ ASIO in ─▶ [プラグインチェーン] ─┬─▶ ASIO out（ヘッド�
 - ⚠ **64bit のプロセスからは 32bit の DLL を直接読み込めない**。本ツールを 64bit で作るなら、ホストするには「32bit の別プロセスを立てて音をやり取りする」橋渡しが要る（遅延と複雑さが増える）。FL Studio では FL 自身の橋渡し機能で動いていたはず。
 - 🔴 RX 8 が 64bit 専用かは未確認。64bit 専用なら、本ツールを 32bit にして rovee を直接読む道も閉じる。
 - 🟢 パラメータ名（DLL 内の文字列）: **Mix・Pitch・Robot・Formant**。設定ファイル `RoVee.ini` の `[midicc]` 節には、これに Vol・Bal・Mod・BndRng を加えた8つがある。
-- ⚠ `[midicc]` の数字（Vol=7・Bal=10 など）は**設定値ではなく、各パラメータに割り当てた MIDI CC 番号**（CC7＝ボリューム・CC10＝パンという MIDI の慣例と一致する）。今の音の設定値は FL Studio のプロジェクト側に入っている。
+- 🟡 `RoVee.ini` の `[midicc]` 節（Vol=7・Bal=10・Mod=41・BndRng=14・Mix=19・Pitch=26・Formant=29・Robot=23）が何を表すかは**未確定**:
+  - 設定値（つまみの位置）とみる根拠: ユーザーの観察（2026-10-14・「Mix〜Robot がそのまま設定値っぽい」）。
+  - MIDI CC の割り当てとみる根拠: 節の名前が `midicc`・DLL に MIDI を受け取る処理がある・Vol=7／Bal=10 が MIDI の慣例（CC7＝ボリューム・CC10＝パン）と一致・BndRng の選択肢は 0〜12 の13個で `14` は範囲外。
+  - ini は rovee 自身が書き込んでいる（`WritePrivateProfileStringA` を使用）。
+  - 🟡 確かめ方: FL Studio で Pitch を動かして保存し、ini の `Pitch=` が変わるかを見る。
 
 ## 6. 操作と UI
 - 🟢 **操作はすべて X390 の画面で行う**（2026-10-14 決定）。リモート操作は作らない。
