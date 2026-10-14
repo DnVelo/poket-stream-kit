@@ -1,0 +1,17 @@
+{
+  "outputStyle": "日本語",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash|Read|NotebookRead",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/docs_gate.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

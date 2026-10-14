@@ -1,5 +1,8 @@
 # Pocket Stream Host
 
+> 🟡 **仕様策定中**（2026-10-14）。この README とコードは、仕様を決める前に作った **JUCE 版の叩き台**で、採否は未決です。
+> 設計の正は `PSK_README.md`（索引）と `docs/1_spec/` にあります。
+
 配信用の「とても小さなDAW / VSTホスト」。
 **ASIO（ヘッドホンへの低遅延モニター）と WASAPI共有 / DirectSound（VB-CABLE → OBS）を同時に開く**ことに特化しています。
 
