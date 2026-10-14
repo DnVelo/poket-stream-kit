@@ -32,6 +32,6 @@
 - 🟡 通話相手へ送る音の中身 → `PSK_ENGINE §2.3`
 - 🟡 プロセス構成とスレッド → `PSK_ENGINE §4`
 - 🟡 ヘッドホンに返す音 → `PSK_VISION §3.3`
-- 🟡 各部を Zig と C++ のどちらで書くか → `PSK_ENGINE §1.2`
+- 🟡 VST3 ホストと画面の書き方 → `PSK_ENGINE §1.2`
 - 🟡 使うプラグインと形式 → `PSK_ENGINE §5`
 - 🟡 遅延の目標値 → `PSK_VISION §4`

@@ -11,18 +11,16 @@
 - ❌ JUCE（叩き台）は不採用[^juce]。
 - ⭐ **将来の Android 移植に備える**（2026-10-14 ユーザー要望）。オーディオ層は移植しやすい形にする。
 
-### 1.2 🟡 各部をどう書くか（未決・候補）
-| 部分 | 候補 | 備考 |
+### 1.2 各部をどう書くか
+| 部分 | 方針 | 備考 |
 |---|---|---|
-| ASIO | Zig から ASIO ドライバの COM インターフェースを直接呼ぶ／Gear-vk と同じ RtAudio（C++） | 🟡 x64 では素の COM の vtable 呼び出しなので Zig から呼べる見込み（🔴 未検証） |
-| WASAPI | Zig から COM を直接呼ぶ／miniaudio（C・Zig から `@cImport` 可）[^gear-audio] | |
-| VST3 ホスト | Steinberg の C 版ヘッダ（`vst3_c_api`）を Zig から使う／VST3 SDK（C++）の薄い層 | 🔴 C 版ヘッダで実用のホストが組めるかは未検証 |
-| 画面 | Zig から Win32 を直接呼ぶ | プラグインのエディタも Win32 のウィンドウに載せる |
+| 🟢 ASIO | **Zig から ASIO ドライバの COM インターフェースを直接呼ぶ**（2026-10-14 決定） | RtAudio は使わない[^rtaudio-api]。🔴 x64 の素の COM として呼べるかは未検証 |
+| 🟢 ASIO 以外の入出力 | **miniaudio**（C・Zig から `@cImport`）（2026-10-14 決定） | 仮想ケーブルの入出力すべて。Android（AAudio / OpenSL ES）にもそのまま使える[^gear-audio] |
+| 🟡 VST3 ホスト | Steinberg の C 版ヘッダ（`vst3_c_api`）を Zig から使う／VST3 SDK（C++）の薄い層 | 🔴 C 版ヘッダで実用のホストが組めるかは未検証 |
+| 🟡 画面 | Zig から Win32 を直接呼ぶ | プラグインのエディタも Win32 のウィンドウに載せる |
 
-- 🟡 **RtAudio の採用を検討中**（2026-10-14 ユーザー要望: 遅延と負荷に影響がなければ RtAudio にして、Android 移植に備えたい）。
-  ⚠ ただし **RtAudio 6.0.1 には Android のバックエンドが無い**（対応は CoreAudio・ALSA・JACK・PulseAudio・OSS・ASIO・WASAPI・DirectSound）[^rtaudio-api]。
-  Android で使えるのは miniaudio（AAudio / OpenSL ES）の側。
-- ⚠ Gear-vk では miniaudio と RtAudio を**同時には開かない**設計だった[^gear-audio]。本ツールは**両方を同時に開くのが本題**なので、そこは新しく作る部分になる。
+- 🟢 Android へ移植するときは、ASIO の部分を外して miniaudio だけで動かす。⚠ VST3 も Android には無いので、プラグインの扱いは移植時に別途決める。
+- ⚠ Gear-vk では ASIO（RtAudio 経由）と miniaudio を**同時には開かない**設計だった[^gear-audio]。本ツールは **ASIO と miniaudio を同時に開くのが本題**なので、そこは新しく作る部分になる。
 - ⚠ ASIO SDK のライセンス: Gear-vk の資料では「再配布不可」だが、**2.3.4（2025-10-15）から Steinberg 独自ライセンスと GPLv3 の選択制**になった[^asio-license]。
 
 ## 2. 信号経路
@@ -74,7 +72,10 @@ ASIO in ─▶ [プラグインチェーン] ─┬─▶ ASIO out（ヘッド�
 - 🟡 ASIO のコールバックで何をして、何をほかのスレッドへ出すか（プラグイン処理はモニターに必要なので ASIO 側に残る見込み）。
 
 ## 5. 🟡 プラグイン
-- 🟡 使うもの: rovee（🔴 正体と対応形式を確認中）・iZotope RX 8（どのモジュールか）・T-De-Esser。
+- 🟡 今の FL Studio のチェーン（ユーザーの記憶・2026-10-14・「間にコンプも挟まっていたかも」）:
+  **EQ → RX 8 → rovee → Soundgoodizer → EQ → T-De-Esser**
+- 🔴 Soundgoodizer は FL Studio に内蔵のプラグインで、ほかのホストでは使えない見込み。EQ とコンプも FL 内蔵のもの（Fruity 系）なら同じ（要確認）。
+- 🟡 RX 8 のモジュール、rovee の正体と対応形式は未確認。
 - 🟡 形式: VST3 だけか、VST2 も要るか。
 
 ## 6. 操作と UI
@@ -85,7 +86,7 @@ ASIO in ─▶ [プラグインチェーン] ─┬─▶ ASIO out（ヘッド�
 - 🟡 何を保存するか（デバイス・プラグインの状態・音量）、どこに置くか。
 
 [^gear-audio]: Gear-vk の記憶 `audio-backend-miniaudio` と `audio-asio-lowlatency`（本リポの `docs/_memory/` に写しあり）。
-[^rtaudio-api]: Gear-vk 同梱の `src/third_party/rtaudio/RtAudio.h`（6.0.1）の `enum Api` を 2026-10-14 に確認。
+[^rtaudio-api]: RtAudio は一度候補になったが、**6.0.1 には Android のバックエンドが無い**ため移植の助けにならず、見送った（2026-10-14）。確認元は Gear-vk 同梱の `src/third_party/rtaudio/RtAudio.h`（6.0.1）の `enum Api` を 2026-10-14 に確認。
 [^juce]: 2026-10-14 にユーザーが Zig ＋ C++ の構成を指定したため。叩き台の扱いは `PSK_IMPLEMENTATION_STATUS §0`。
 [^cable-default]: ユーザーの指摘（2026-10-14）。
 [^cable-count]: ユーザー情報（2026-10-14）。🔴 製品の組み合わせ（VB-CABLE 本体と追加パック）は未確認。
