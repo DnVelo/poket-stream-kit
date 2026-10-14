@@ -165,7 +165,78 @@ pub const OpenOptions = struct {
     buffer_frames: ?u32 = null, // null ならドライバの推奨値
     input_channels: []const u32 = &.{0},
     output_channels: []const u32 = &.{ 0, 1 },
+    /// ドライバの init に渡すウィンドウ（画面のある版はメインウィンドウ・null ならコンソールの窓）
+    sys_handle: ?*anyopaque = null,
 };
+
+/// 開かずに調べられる、ドライバの能力。
+pub const Caps = struct {
+    num_inputs: c_long = 0,
+    num_outputs: c_long = 0,
+    min_frames: c_long = 0,
+    max_frames: c_long = 0,
+    preferred_frames: c_long = 0,
+    granularity: c_long = 0,
+    sample_rate: f64 = 0,
+    input_names: [max_query_inputs][32]u8 = std.mem.zeroes([max_query_inputs][32]u8),
+
+    pub fn inputName(self: *const Caps, ch: usize) []const u8 {
+        return std.mem.sliceTo(&self.input_names[ch], 0);
+    }
+
+    /// 受け付けるバッファサイズの候補を out に書き、個数を返す（刻み -1＝2のべき乗・0＝推奨値だけ）。
+    pub fn bufferChoices(self: *const Caps, out: []u32) usize {
+        var n: usize = 0;
+        const lo: u32 = @intCast(@max(self.min_frames, 1));
+        const hi: u32 = @intCast(@max(self.max_frames, self.min_frames));
+        if (self.granularity == -1) {
+            var v: u32 = 1;
+            while (v <= hi and n < out.len) : (v *= 2) {
+                if (v >= lo) {
+                    out[n] = v;
+                    n += 1;
+                }
+            }
+        } else if (self.granularity > 0) {
+            var v = lo;
+            while (v <= hi and n < out.len) : (v += @intCast(self.granularity)) {
+                out[n] = v;
+                n += 1;
+            }
+        }
+        if (n == 0 and out.len > 0 and self.preferred_frames > 0) {
+            out[0] = @intCast(self.preferred_frames);
+            n = 1;
+        }
+        return n;
+    }
+};
+
+pub const max_query_inputs = 16;
+
+/// ドライバを作って init し、能力を読んで手放す（音は出さない）。ドライバを開いている間は呼ばない。
+pub fn query(entry: *const DriverEntry, sys_handle: ?*anyopaque) OpenError!Caps {
+    if (g_state != null) return error.CreateFailed;
+    if (!com_ready) return error.ComInitFailed;
+    var obj: ?*anyopaque = null;
+    if (CoCreateInstance(&entry.clsid, null, clsctx_inproc_server, &entry.clsid, &obj) < 0 or obj == null) return error.CreateFailed;
+    const drv: *IAsio = @ptrCast(@alignCast(obj.?));
+    defer _ = drv.vtbl.release(drv);
+    if (drv.vtbl.init(drv, sys_handle orelse GetConsoleWindow()) == 0) {
+        drv.vtbl.get_error_message(drv, &last_error_message);
+        return error.InitFailed;
+    }
+    var caps = Caps{};
+    _ = drv.vtbl.get_channels(drv, &caps.num_inputs, &caps.num_outputs);
+    _ = drv.vtbl.get_buffer_size(drv, &caps.min_frames, &caps.max_frames, &caps.preferred_frames, &caps.granularity);
+    _ = drv.vtbl.get_sample_rate(drv, &caps.sample_rate);
+    const n: usize = @intCast(@min(@max(caps.num_inputs, 0), max_query_inputs));
+    for (0..n) |ch| {
+        var ci = ChannelInfo{ .channel = @intCast(ch), .is_input = 1, .is_active = 0, .channel_group = 0, .sample_type = .int32_lsb, .name = std.mem.zeroes([32]u8) };
+        if (drv.vtbl.get_channel_info(drv, &ci) == ase_ok) caps.input_names[ch] = ci.name;
+    }
+    return caps;
+}
 
 pub const Info = struct {
     driver_name: [32]u8 = std.mem.zeroes([32]u8),
@@ -247,7 +318,7 @@ pub fn open(allocator: std.mem.Allocator, entry: *const DriverEntry, opts: OpenO
     const drv: *IAsio = @ptrCast(@alignCast(obj.?));
     errdefer _ = drv.vtbl.release(drv);
 
-    if (drv.vtbl.init(drv, GetConsoleWindow()) == 0) {
+    if (drv.vtbl.init(drv, opts.sys_handle orelse GetConsoleWindow()) == 0) {
         drv.vtbl.get_error_message(drv, &last_error_message);
         return error.InitFailed;
     }
@@ -498,6 +569,19 @@ pub fn sampleTypeName(t: SampleType) []const u8 {
         .int32_lsb24 => "Int32LSB24",
         else => "(未対応)",
     };
+}
+
+test "バッファサイズの候補" {
+    var out: [32]u32 = undefined;
+    const pow2 = Caps{ .min_frames = 32, .max_frames = 2048, .preferred_frames = 128, .granularity = -1 };
+    const n1 = pow2.bufferChoices(&out);
+    try std.testing.expectEqualSlices(u32, &.{ 32, 64, 128, 256, 512, 1024, 2048 }, out[0..n1]);
+    const step = Caps{ .min_frames = 48, .max_frames = 192, .preferred_frames = 96, .granularity = 48 };
+    const n2 = step.bufferChoices(&out);
+    try std.testing.expectEqualSlices(u32, &.{ 48, 96, 144, 192 }, out[0..n2]);
+    const fixed = Caps{ .min_frames = 256, .max_frames = 256, .preferred_frames = 256, .granularity = 0 };
+    const n3 = fixed.bufferChoices(&out);
+    try std.testing.expectEqualSlices(u32, &.{256}, out[0..n3]);
 }
 
 test "サンプル形式の往復変換" {

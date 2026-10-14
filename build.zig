@@ -35,6 +35,22 @@ pub fn build(b: *std.Build) void {
         if (b.args) |a| run.addArgs(a);
         b.step("p1", "P1 確認用プログラムを動かす（引数は -- の後ろ）").dependOn(&run.step);
 
+        // P1 の画面版（素の Win32・PSK_ENGINE §6.2）
+        const gui_mod = b.createModule(.{
+            .root_source_file = b.path("src/p1_gui.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        gui_mod.addCSourceFile(.{ .file = b.path("src/audio/psk_ma.c"), .flags = &.{"-std=c99"} });
+        gui_mod.addIncludePath(b.path("src/third_party/miniaudio"));
+        for ([_][]const u8{ "ole32", "advapi32", "user32", "gdi32", "comctl32" }) |lib| gui_mod.linkSystemLibrary(lib, .{});
+        const gui = b.addExecutable(.{ .name = "psk-p1-gui", .root_module = gui_mod });
+        gui.subsystem = .Windows; // コンソール窓を出さない
+        b.installArtifact(gui);
+        const gui_run = b.addRunArtifact(gui);
+        b.step("p1-gui", "P1 確認用プログラムの画面版を開く").dependOn(&gui_run.step);
+
         // テスト用の偽 ASIO ドライバ（実機の無い環境で asio.zig を確かめる・配布しない）
         const fake = b.addLibrary(.{ .name = "fake_asio", .linkage = .dynamic, .root_module = b.createModule(.{
             .root_source_file = b.path("tools/fake_asio/fake_asio.zig"),

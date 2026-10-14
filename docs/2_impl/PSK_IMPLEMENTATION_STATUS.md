@@ -10,7 +10,9 @@
 | パス | 中身 |
 |---|---|
 | `build.zig` | `zig build`（既定 ReleaseSafe）。`zig build test`＝単体テスト・Windows 向けでは `psk-p1.exe` と偽 ASIO ドライバ（`zig build fake-asio`） |
-| `src/p1_main.zig` | P1 確認用プログラム。ASIO の素通し＋VB-CABLE への出力＋共有モードのテスト音＋1秒ごとの統計（`psk-p1.log` にも出す） |
+| `src/p1_engine.zig` | P1 の音の部分（ASIO の素通し＋VB-CABLE への出力＋共有モードのテスト音＋1秒ごとの統計・ログは exe の隣の `psk-p1.log`）。コマンド版と画面版で共有 |
+| `src/p1_main.zig` | P1 のコマンド版 `psk-p1.exe` |
+| `src/p1_gui.zig` | P1 の画面版 `psk-p1-gui.exe`（素の Win32・手本は Gear-vk の gear-gui）。ドライバ・バッファ・入力ch・ケーブル・共有テスト・音量（動作中も効く）・開始／停止・ドライバの設定画面 |
 | `src/audio/asio.zig` | ASIO の直叩き（レジストリ列挙・COM・関数表・コールバック・サンプル形式の変換） |
 | `src/audio/drift_fifo.zig` | クロックの橋渡し（PSK_ENGINE §3.2）と、そのシミュレーションテスト |
 | `src/audio/psk_ma.c` ／ `src/audio/ma.zig` | miniaudio の実体化と、Zig から呼ぶ薄い窓口 |
@@ -28,7 +30,9 @@
 | P4 | 内製の段（EQ・コンプ・リミッター → ディエッサー → rovee） | 聞き比べ |
 
 ## 1.6 P1 の実機確認の手順（X390）
-1. `psk-p1.exe` を任意のフォルダに置き、そのフォルダでコマンドプロンプトを開く（結果は同じフォルダの `psk-p1.log` にも残る）。
+⭐ **画面版 `psk-p1-gui.exe` なら、ダブルクリックで開いてドロップダウンを選び「開始」を押すだけ**。中身は下のコマンド版と同じ（バッファ・入力ch・ケーブル・共有テスト・音量を画面で選ぶ）。
+以下はコマンド版での手順。
+1. `psk-p1.exe` を任意のフォルダに置き、そのフォルダでコマンドプロンプトを開く（結果は exe の隣の `psk-p1.log` にも残る）。
 2. `psk-p1 --list` … ASIO ドライバ名と、再生・録音デバイス名を確かめる。
 3. `psk-p1 --seconds 60` … Creative ASIO の推奨バッファで1分。マイクの声がヘッドホンで聞こえるか・OBS（`CABLE Output`）にも入るか。
 4. `psk-p1 --buffer 64 --seconds 60`、`--buffer 32` … バッファを詰めて、音切れ・最大間隔・最大処理時間を見る。
@@ -43,10 +47,16 @@
 - 🟢 Windows 向け（`x86_64-windows-gnu`・`-Dcpu=skylake`）のクロスビルドが通り、`psk-p1.exe` が `CoCreateInstance` などを取り込んでいる。
 - 🟢 Wine＋偽 ASIO ドライバで: ドライバの列挙・作成・バッファ作成・コールバックが噛み合い、**素通しの照合 4682／4682 ブロック一致**・入力ピークが偽ドライバの音量（-6 dBFS）と一致（2026-10-14）。
 - 🟢 その過程で2つの不具合を見つけて直した: ①COM の初期化の順番、②miniaudio の `CoUninitialize` の不釣り合い（どちらも `src/audio/CLAUDE.md`）。実機でも同じことが起きたはずのもの。
+- 🟢 画面版も Wine（Xvfb）＋偽 ASIO ドライバで: 初期値の選択（推奨バッファ・入力 ch0）・開始／停止で部品の有効・無効の切り替え・統計の表示を画面写しで確認し、**素通しの照合 2293／2293 ブロック一致**（2026-10-14）。
+  🔴 音量のつまみをクリックで動かす操作は Wine では試していない。
 - 🔴 Wine では橋渡しの実時間の挙動は確かめられない（空の機器が4倍速で吸い出す）。単体のシミュレーションだけが根拠。
 - 🔴 実機（X390＋Play! 3＋Creative ASIO）では、まだ一度も動かしていない。
 
 ## 3. 更新履歴（新しい順）
+
+### 2026-10-14 — P1 の画面版
+- `psk-p1-gui`（素の Win32）を追加。音の部分を `p1_engine.zig` に切り出してコマンド版と共有。ASIO を開かずに能力（バッファの候補・入力チャンネル名）を調べる `asio.query` を追加。
+- ログを exe の隣に作るようにした（Zig 標準の selfExeDirPath は Wine で失敗したので GetModuleFileNameW で調べる）。
 
 ### 2026-10-14 — P1 の作成
 - `psk-p1`（ASIO の直叩き・miniaudio のケーブル出力・クロックの橋渡し・共有モードのテスト）と偽 ASIO ドライバを作成。
