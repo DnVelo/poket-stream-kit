@@ -9,6 +9,7 @@
 - 🟢 **Zig ＋ C++ の構成**（Gear-vk と同じ）。**極力 Zig で書き、C++ は避けられない所だけ**。
 - 🟢 **目的は徹底した軽量化**。CPU とスケジューリングに余裕を作り、**ASIO のバッファを限界まで切り詰められる**ようにする。
 - ❌ JUCE（叩き台）は不採用[^juce]。
+- ⭐ **将来の Android 移植に備える**（2026-10-14 ユーザー要望）。オーディオ層は移植しやすい形にする。
 
 ### 1.2 🟡 各部をどう書くか（未決・候補）
 | 部分 | 候補 | 備考 |
@@ -18,6 +19,9 @@
 | VST3 ホスト | Steinberg の C 版ヘッダ（`vst3_c_api`）を Zig から使う／VST3 SDK（C++）の薄い層 | 🔴 C 版ヘッダで実用のホストが組めるかは未検証 |
 | 画面 | Zig から Win32 を直接呼ぶ | プラグインのエディタも Win32 のウィンドウに載せる |
 
+- 🟡 **RtAudio の採用を検討中**（2026-10-14 ユーザー要望: 遅延と負荷に影響がなければ RtAudio にして、Android 移植に備えたい）。
+  ⚠ ただし **RtAudio 6.0.1 には Android のバックエンドが無い**（対応は CoreAudio・ALSA・JACK・PulseAudio・OSS・ASIO・WASAPI・DirectSound）[^rtaudio-api]。
+  Android で使えるのは miniaudio（AAudio / OpenSL ES）の側。
 - ⚠ Gear-vk では miniaudio と RtAudio を**同時には開かない**設計だった[^gear-audio]。本ツールは**両方を同時に開くのが本題**なので、そこは新しく作る部分になる。
 - ⚠ ASIO SDK のライセンス: Gear-vk の資料では「再配布不可」だが、**2.3.4（2025-10-15）から Steinberg 独自ライセンスと GPLv3 の選択制**になった[^asio-license]。
 
@@ -81,6 +85,7 @@ ASIO in ─▶ [プラグインチェーン] ─┬─▶ ASIO out（ヘッド�
 - 🟡 何を保存するか（デバイス・プラグインの状態・音量）、どこに置くか。
 
 [^gear-audio]: Gear-vk の記憶 `audio-backend-miniaudio` と `audio-asio-lowlatency`（本リポの `docs/_memory/` に写しあり）。
+[^rtaudio-api]: Gear-vk 同梱の `src/third_party/rtaudio/RtAudio.h`（6.0.1）の `enum Api` を 2026-10-14 に確認。
 [^juce]: 2026-10-14 にユーザーが Zig ＋ C++ の構成を指定したため。叩き台の扱いは `PSK_IMPLEMENTATION_STATUS §0`。
 [^cable-default]: ユーザーの指摘（2026-10-14）。
 [^cable-count]: ユーザー情報（2026-10-14）。🔴 製品の組み合わせ（VB-CABLE 本体と追加パック）は未確認。
