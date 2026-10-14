@@ -29,8 +29,7 @@
 
 ## 横断の未決事項（決まったら該当節へ書き戻して、ここから消す）
 - 🔴 Creative ASIO が完全な排他かどうか（実機で検証）→ `PSK_ENGINE §3.1`
-- 🟡 プロセス構成とスレッド → `PSK_ENGINE §4`
-- 🟡 VST3 ホストと画面の書き方 → `PSK_ENGINE §1.2`
-- 🟡 rovee を内製するかホストするか・汎用の段を内蔵するか → `PSK_ENGINE §5.1`
 - 🟡 外部ツールの検知の方法と案内の出し方 → `PSK_ENGINE §8`
-- 🟡 起動ボタンで何をするか・失敗したときの見せ方 → `PSK_ENGINE §7`
+- 🟡 起動ボタンで何をするか → `PSK_ENGINE §7`
+- 🟡 技術案（スレッド・ASIO・VST3・内製の段）の承認 → `PSK_ENGINE §1.2 §4 §5.1`
+- 🟡 次の段取り（P1〜P4）の承認 → `PSK_IMPLEMENTATION_STATUS §1.5`
